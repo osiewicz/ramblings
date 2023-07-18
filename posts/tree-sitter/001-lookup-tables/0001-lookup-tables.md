@@ -10,7 +10,7 @@ I've pulled out a build invokation, which looks somewhat like:
 `cc -O3  -c -fPIC -arch arm64 -I ../src -Wall -Wextra -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-trigraphs parser.c`
 `cc` on my machine is an alias for `clang`.
 Let's time it.
-`cc -O3 -c -fPIC -arch arm64 -I ../src -Wall -Wextra -Wno-unused-parameter     28.62s user 0.08s system 99% cpu 28.709 total`
+`❯ 28.62s user 0.08s system 99% cpu 28.709 total`
 
 So the issue is real (and the results are similar for `gcc`). I suppose it builds a bit faster than from within `build.rs`, because the machine is otherwise idle - which is obviously not the case when we build this C file from within a build of a big workspace.
 
@@ -107,7 +107,30 @@ case 18:
     }
   }
   // These nodes need to remain, as they can be true for non-ASCII codepoints as well.
+  // On the flipside, we skip several checks that cannot be true for non-ascii codepoints, so in a way we speed up UTF-8. Cool.
   if (sym_identifier_character_set_2(lookahead)) ADVANCE(168);
   if (lookahead != 0) ADVANCE(127);
   END_STATE();
 ```
+
+Does this improve compile times though?
+```
+❯ 6.11s user 0.04s system 99% cpu 6.156 total
+```
+Yay! That's over 4x improvement.
+
+How about runtime? Did our change regress the performance somehow?
+
+
+| ./script/benchmark     | main (89edb2) | lut (375b4a)  |
+|------------------------|---------------|---------------|
+| Average speed (normal) | 5689 bytes/ms | 5747 bytes/ms |
+| Average speed (errors) | 6685 bytes/ms | 6573 bytes/ms |
+|                        | [full results](./benchmark_0_base_89edb2ddcaf2928e3197ad6095e1eb1d59bfcc40.txt)              | [full results](./benchmark_1_375b4a38a412ae54e5fd4a8ead968cd25c7068b4.txt)              |
+
+Not bad! We got a speed bump in happy cases and slight regression in error parsing speed. There are few tricks we can apply to catch up. In fact, the version we're benchmarking already employs two of them.
+
+For a good measure, let's also measure binary size differences.
+
+## Emitting LUT for sufficiently large character sets
+Notice how we generate a LUT of size `sizeof(uint16_t) * highest_ascii_char` - this
