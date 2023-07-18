@@ -130,9 +130,25 @@ How about runtime? Did our change regress the performance somehow?
 | Average speed (errors) | 6685 bytes/ms | 6573 bytes/ms |
 |                        | [full results](./benchmark_0_base_89edb2ddcaf2928e3197ad6095e1eb1d59bfcc40.txt)              | [full results](./benchmark_1_375b4a38a412ae54e5fd4a8ead968cd25c7068b4.txt)              |
 
-Not bad! We got a speed bump in happy cases and slight regression in error parsing speed. There are few tricks we can apply to catch up. In fact, the version we're benchmarking already employs two of them.
+Not bad! We got a speed bump in happy cases and slight regression in error parsing speed.
 
-For a good measure, let's also measure binary size differences.
+For a good measure, let's also measure binary size differences of `parser.o`.
+|                   | main (89edb2) | lut (375b4a) | % difference |
+|-------------------|---------------|--------------|--------------|
+| bash              | 487432        | 564424       | +15.79%      |
+| c                 | 492088        | 530264       | +7.75%       |
+| cpp               | 2317200       | 2388416      | +3.7%        |
+| embedded-template | 6808          | 10848        | +60.34%      |
+| go                | 255960        | 276752       | +8.12%       |
+| html              | 13448         | 32184        | +139.32%     |
+| java              | 397576        | 424832       | +6.85%       |
+| javascript        | 252952        | 279760       | +10.59%      |
+| jsdoc             | 17472         | 51800        | +196.47%     |
+| json              | 9160          | 15256        | +66.55%      |
+| php               | 725024        | 780624       | +7.66%       |
+| python            | 417368        | 425648       | +1.98%       |
+| ruby              | 2074352       | 2245800      | +8.26%       |
+| rust              | 768560        | 780488       | +1.55%       |
 
-## Emitting LUT for sufficiently large character sets
-Notice how we generate a LUT of size `sizeof(uint16_t) * highest_ascii_char` - this
+There are few tricks we can apply to catch up. In fact, the version we're benchmarking already employs one of them: we only emit LUT for sufficiently large character sets.
+It does not make sense to generate full lookup table if there's just handful of comparisons to be made. After all, LUT lookup has it's cost as well. If there are less than 2 states in a given case, we fall back to the old if else chain - it will be more efficient than a LUT anyways.
