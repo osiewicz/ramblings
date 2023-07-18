@@ -91,7 +91,8 @@ We could instead use a lookup table (mapping a character to state) to reduce the
 The previous example could be rewritten to use a LUT as follows:
 ```
 case 18:
-  // MAX_LUT_VALUE is a max char with set value. We only store ASCII chars in LUT though, so it should never be greater than 127.
+  // MAX_LUT_VALUE is a max char with set value. We only store ASCII chars in LUT though,
+  // so it should never be greater than 127.
   if lookahead < MAX_LUT_VALUE {
     // LUT contains 3 kinds of values:
     // 65535 -> there's no value for given character.
@@ -107,7 +108,8 @@ case 18:
     }
   }
   // These nodes need to remain, as they can be true for non-ASCII codepoints as well.
-  // On the flipside, we skip several checks that cannot be true for non-ascii codepoints, so in a way we speed up UTF-8. Cool.
+  // On the flipside, we skip several checks that cannot be true for non-ascii codepoints,
+  // so in a way we speed up UTF-8. Cool.
   if (sym_identifier_character_set_2(lookahead)) ADVANCE(168);
   if (lookahead != 0) ADVANCE(127);
   END_STATE();
